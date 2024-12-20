@@ -15,6 +15,12 @@ namespace ERP_Genie_Model
         }
 
         // Add your DbSets here
-        public DbSet<User> users { get; set; }
+        public DbSet<User> Users { get; set; }
+        public DbSet<Auth> Auth { get; set; }
+        public DbSet<Expense> Expenses { get; set; }
+        public DbSet<Product> Products { get; set; }
+        public DbSet<Order> Orders { get; set; }
+        public DbSet<OrderItem> OrderItems { get; set; }
+        public DbSet<Transaction> Transactions { get; set; }
     }
 }

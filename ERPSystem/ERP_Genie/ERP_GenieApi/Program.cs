@@ -1,13 +1,16 @@
 using System.Text;
 using ERP_Genie_Model;
+using ERP_Genie_Service.Contract.Implementation;
+using ERP_Genie_Service.Contract.Interfaces;
+using ERP_Genie_Repo.Contract;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-builder.Services.AddControllersWithViews();
+// Add services to the container
+builder.Services.AddControllers();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("NdfsERPDB")));
 
@@ -15,7 +18,12 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo { Title = "Your API", Version = "v1" });
+    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+    {
+        Title = "ERP Genie API",
+        Version = "v1",
+        Description = "API documentation for ERP Genie"
+    });
     c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
     {
         In = Microsoft.OpenApi.Models.ParameterLocation.Header,
@@ -42,6 +50,12 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 // JWT Authentication Setup
+var jwtSecretKey = builder.Configuration["JwtSettings:SecretKey"];
+if (string.IsNullOrEmpty(jwtSecretKey))
+{
+    throw new ArgumentNullException("JwtSettings:SecretKey", "JWT secret key is not configured in appsettings.json.");
+}
+
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -55,34 +69,28 @@ builder.Services.AddAuthentication(options =>
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        ValidIssuer = builder.Configuration["Jwt:Issuer"],
-        ValidAudience = builder.Configuration["Jwt:Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Secret"]))
+        ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
+        ValidAudience = builder.Configuration["JwtSettings:Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecretKey))
     };
 });
 
 // Add Authorization
 builder.Services.AddAuthorization();
 
+// Register AuthService Dependency
+builder.Services.AddScoped<IAuthService, AuthService>();
+
+// Register Generic Repository
+builder.Services.AddScoped(typeof(IGenericRepo<>), typeof(GenericRepo<>));
+
+// Build the app
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (!app.Environment.IsDevelopment())
-{
-    app.UseExceptionHandler("/Home/Error");
-    app.UseHsts();
-}
-
+app.UseSwagger();
+app.UseSwaggerUI();
 app.UseHttpsRedirection();
-app.UseStaticFiles();
-
-app.UseRouting();
-
-app.UseAuthentication(); // Ensure this is before app.UseAuthorization()
+app.UseAuthentication();
 app.UseAuthorization();
-
-app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
-
-app.Run();
+app.MapControllers();
+await app.RunAsync();

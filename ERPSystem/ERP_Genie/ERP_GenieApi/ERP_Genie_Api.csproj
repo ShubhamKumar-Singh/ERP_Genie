@@ -22,10 +22,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Controllers\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\ERP_Genie_Model\ERP_Genie_Model.csproj" />
     <ProjectReference Include="..\ERP_Genie_Service\ERP_Genie_Service.csproj" />
   </ItemGroup>
